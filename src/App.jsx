@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { StoreProvider } from './store/store';
 import Layout from './components/Layout';
 import Overview from './pages/Overview';
@@ -24,6 +24,7 @@ export default function App() {
             <Route path="/connections" element={<Connections />} />
             <Route path="/consents" element={<Consents />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
       </BrowserRouter>
