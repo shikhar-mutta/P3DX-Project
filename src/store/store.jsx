@@ -52,7 +52,7 @@ export function reducer(state, action) {
     }
 
     case 'REVOKE_CONNECTION': {
-      const next = updateConnection(state, action.id, 'revoked', 'Connection revoked by data owner');
+      const next = updateConnection(state, action.id, 'revoked', action.note || 'Connection revoked by data owner');
       // Revoking the channel also revokes every consent that rode on it.
       return {
         ...next,

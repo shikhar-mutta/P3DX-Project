@@ -228,6 +228,23 @@ function ConnectionCard({ conn }) {
               Revoke connection
             </button>
           )}
+          {conn.status === 'established' && !actorIsOwner && officerGateway && (
+            // Gateway authority doesn't end when the channel opens: an officer
+            // on the path can sever it — cascading to consents riding on it.
+            <button
+              className="btn sm danger"
+              title={`Act as Gateway Officer of ${officerGateway.name}: sever this open channel — any consents riding on it are revoked too`}
+              onClick={() =>
+                dispatch({
+                  type: 'REVOKE_CONNECTION',
+                  id: conn.id,
+                  note: `Channel severed by Gateway Officer at ${officerGateway.name}`,
+                })
+              }
+            >
+              ⛔ Sever at Gateway
+            </button>
+          )}
         </div>
       </div>
 
