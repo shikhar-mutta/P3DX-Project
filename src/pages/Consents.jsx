@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   useStore,
   agentById,
@@ -104,6 +105,112 @@ function GrantConsentModal({ connection, onClose }) {
   );
 }
 
+// FNV-1a over the txn id keeps the mock signatures stable across re-renders.
+function sig(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = ((h ^ s.charCodeAt(i)) * 16777619) >>> 0;
+  return h.toString(16).padStart(8, '0');
+}
+
+function MockDocument({ record, owner, issuer, txn }) {
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '18px 20px',
+        background: 'var(--bg-raised)',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 11, letterSpacing: '0.18em', color: 'var(--text-faint)', textTransform: 'uppercase' }}>
+        {issuer}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, margin: '6px 0' }}>{record}</div>
+      <div className="small muted">This document certifies that</div>
+      <div style={{ fontSize: 15, fontWeight: 650, margin: '4px 0' }}>{owner}</div>
+      <div className="small muted">holds the above credential as recorded in the issuer's registry.</div>
+      <div className="row" style={{ justifyContent: 'center', marginTop: 10 }}>
+        <span className="tag">Ref {txn.id}</span>
+        <span className="tag">Issued {fmtDate(txn.at)}</span>
+        <span className="tag">🔏 Seal verified</span>
+      </div>
+      <div className="faint" style={{ marginTop: 8 }}>Mock document — demo only</div>
+    </div>
+  );
+}
+
+function MockPayloadModal({ txn, consent, onClose }) {
+  const { state } = useStore();
+  const [openDoc, setOpenDoc] = useState(null);
+  const locker = lockerById(state, txn.fromLockerId);
+  const owner = agentById(state, locker?.ownerId);
+  const grantee = agentById(state, txn.requesterId);
+  const connection = state.connections.find((c) => c.id === txn.connectionId);
+  const endpoint = locker?.endpoints.find((e) => e.id === connection?.endpointId);
+  const gatewayName = (id) => state.worlds.find((w) => w.gateway.id === id)?.gateway.name || id;
+  // The document dies with the consent; only the attestation record survives.
+  const accessLive = consent.status === 'active' && !isExpired(consent);
+
+  return (
+    <Modal
+      title="Exchanged data package (mock)"
+      subtitle={`Delivered to ${grantee?.name} · ${fmtDate(txn.at)} · Transaction ${txn.id}`}
+      onClose={onClose}
+    >
+      <div className="stack" style={{ gap: 12 }}>
+        <div className="row">
+          <StatusPill status={txn.status} />
+          <span className="tag">{locker?.icon} {locker?.name}</span>
+          {endpoint && <span className="tag">🔌 {endpoint.name}</span>}
+          {txn.consentId && <span className="tag">✅ Consent {txn.consentId}</span>}
+        </div>
+
+        {txn.data.map((d) => (
+          <div key={d} className="card" style={{ background: 'var(--bg-panel)' }}>
+            <div className="spread">
+              <strong>📄 {d}</strong>
+              <span style={{ color: 'var(--ok)', fontWeight: 650 }}>ATTESTED ✓</span>
+            </div>
+            <div className="small muted" style={{ marginTop: 6 }}>
+              Subject: {owner?.name} · Issuer: {worldById(state, locker?.worldId)?.name}
+            </div>
+            <div className="faint" style={{ fontFamily: 'monospace', marginTop: 4 }}>
+              signature SIG-{sig(txn.id + d)} · digest sha256:{sig(d + txn.id)}{sig(txn.id)}…
+            </div>
+            {accessLive ? (
+              <button className="btn sm" style={{ marginTop: 10 }} onClick={() => setOpenDoc(openDoc === d ? null : d)}>
+                {openDoc === d ? 'Hide document' : '📄 Show document'}
+              </button>
+            ) : (
+              <div className="faint" style={{ marginTop: 10 }}>
+                🔒 Document no longer viewable — consent {consent.status === 'revoked' ? 'revoked' : 'expired'}. The
+                signed attestation above remains on record.
+              </div>
+            )}
+            {accessLive && openDoc === d && (
+              <MockDocument record={d} owner={owner?.name} issuer={worldById(state, locker?.worldId)?.name} txn={txn} />
+            )}
+          </div>
+        ))}
+
+        <div>
+          <div className="small muted" style={{ fontWeight: 600, marginBottom: 6 }}>Gateway route travelled:</div>
+          <div className="row" style={{ gap: 4 }}>
+            {txn.gatewayIds.map((g) => <span key={g} className="tag">📡 {gatewayName(g)}</span>)}
+          </div>
+        </div>
+
+        <div className="faint">
+          Simulated payload — no raw documents move in P3DX; endpoints return signed attestations scoped by the
+          consent. <Link to="/transactions" onClick={onClose}>View in Transaction Ledger →</Link>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function ConsentCard({ consent }) {
   const { state, dispatch } = useStore();
   const locker = lockerById(state, consent.lockerId);
@@ -115,11 +222,19 @@ function ConsentCard({ consent }) {
   const expired = isExpired(consent);
   const effectiveStatus = expired ? 'expired' : consent.status;
   const usable = effectiveStatus === 'active' && connection?.status === 'established';
+  const exchanges = state.transactions.filter((t) => t.consentId === consent.id);
+  const [justRan, setJustRan] = useState(false);
+  const [showPayload, setShowPayload] = useState(false);
+
+  // The completed-flash is feedback for whoever clicked Execute, not a label —
+  // drop it once the perspective changes.
+  useEffect(() => setJustRan(false), [state.actingAs]);
 
   function runExchange() {
     const requesterWorld = agentById(state, connection.requesterId)?.worldId;
     const hops = gatewayPath(state, requesterWorld, locker.worldId).map((g) => g.id);
     dispatch({ type: 'EXECUTE_EXCHANGE', consentId: consent.id, gatewayIds: hops });
+    setJustRan(true);
   }
 
   return (
@@ -164,6 +279,28 @@ function ConsentCard({ consent }) {
         </table>
       </div>
 
+      {exchanges.length > 0 && (
+        <div
+          className="row"
+          style={{
+            marginTop: 12,
+            padding: '8px 12px',
+            background: 'var(--bg-panel)',
+            border: `1px solid ${justRan ? 'rgba(63, 185, 80, 0.45)' : 'var(--border-soft)'}`,
+            borderRadius: 8,
+          }}
+        >
+          {justRan && <strong style={{ color: 'var(--ok)' }}>✓ Exchange completed</strong>}
+          <StatusPill status={exchanges[0].status} />
+          <span className="faint">
+            {exchanges.length} exchange{exchanges.length > 1 ? 's' : ''} under this consent · last {fmtDate(exchanges[0].at)}
+          </span>
+          <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={() => setShowPayload(true)}>
+            📄 View mock payload
+          </button>
+        </div>
+      )}
+
       <div className="row" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
         {usable && actorIsGrantee && (
           <button className="btn sm primary" onClick={runExchange}>
@@ -181,6 +318,8 @@ function ConsentCard({ consent }) {
           </button>
         )}
       </div>
+
+      {showPayload && <MockPayloadModal txn={exchanges[0]} consent={consent} onClose={() => setShowPayload(false)} />}
     </div>
   );
 }

@@ -200,6 +200,25 @@ function ConnectionCard({ conn }) {
                   Deny
                 </button>
               </>
+            ) : officerGateway ? (
+              // Every gateway on the path keeps its blocking authority until the
+              // channel opens — one officer's clear doesn't bind the others.
+              <>
+                <span className="faint">Awaiting {owner?.name}'s approval</span>
+                <button
+                  className="btn sm danger"
+                  title={`Act as Gateway Officer of ${officerGateway.name}: block this crossing even though it passed the initial screen`}
+                  onClick={() =>
+                    dispatch({
+                      type: 'DENY_CONNECTION',
+                      id: conn.id,
+                      note: `Blocked by Gateway Officer at ${officerGateway.name} while awaiting owner approval`,
+                    })
+                  }
+                >
+                  Deny at Gateway
+                </button>
+              </>
             ) : (
               <span className="faint">Awaiting approval — switch to {owner?.name} to act</span>
             )
