@@ -132,6 +132,34 @@ export function reducer(state, action) {
       return { ...state, transactions: [txn, ...state.transactions] };
     }
 
+    case 'CANCEL_TRANSACTION': {
+      // Post-exchange compliance action: an officer of a gateway on the
+      // transaction's route recalls the exchange after the fact. Blocking the
+      // exchange also revokes the consent it rode on — access ends with it.
+      const txn = state.transactions.find((t) => t.id === action.id);
+      if (!txn || txn.status !== 'completed') return state;
+      return {
+        ...state,
+        transactions: state.transactions.map((t) =>
+          t.id === action.id
+            ? {
+                ...t,
+                status: 'cancelled',
+                cancelledAt: now(),
+                cancelledBy: action.officerId,
+                cancelledVia: action.gatewayId,
+                cancelNote: action.note,
+              }
+            : t
+        ),
+        consents: state.consents.map((c) =>
+          c.id === txn.consentId && c.status === 'active'
+            ? { ...c, status: 'revoked', revokedAt: now() }
+            : c
+        ),
+      };
+    }
+
     case 'RESET':
       return seedState();
 

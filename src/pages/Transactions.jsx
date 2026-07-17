@@ -3,11 +3,16 @@ import { useStore, agentById, lockerById } from '../store/store';
 import { Avatar, StatusPill, EmptyState, fmtDate } from '../components/ui';
 
 export default function Transactions() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const [query, setQuery] = useState('');
 
   const gatewayName = (id) =>
     state.worlds.find((w) => w.gateway.id === id)?.gateway.name || id;
+
+  // A completed exchange stays revocable by the authorities it crossed: any
+  // officer of a gateway on the route can block it after the fact.
+  const officerGatewayOn = (txn) =>
+    state.worlds.map((w) => w.gateway).find((g) => txn.gatewayIds.includes(g.id) && g.officerId === state.actingAs);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -61,6 +66,7 @@ export default function Transactions() {
               {rows.map((t) => {
                 const from = lockerById(state, t.fromLockerId);
                 const to = agentById(state, t.requesterId);
+                const officerGw = t.status === 'completed' ? officerGatewayOn(t) : null;
                 return (
                   <tr key={t.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(t.at)}</td>
@@ -83,7 +89,33 @@ export default function Transactions() {
                         {t.gatewayIds.map((g) => <span key={g} className="tag">📡 {gatewayName(g)}</span>)}
                       </div>
                     </td>
-                    <td><StatusPill status={t.status} /></td>
+                    <td>
+                      <StatusPill status={t.status} />
+                      {t.status === 'cancelled' && (
+                        <div className="faint" style={{ marginTop: 4 }}>
+                          ⛔ {agentById(state, t.cancelledBy)?.name} · {gatewayName(t.cancelledVia)}
+                          <br />{fmtDate(t.cancelledAt)}
+                        </div>
+                      )}
+                      {officerGw && (
+                        <button
+                          className="btn sm danger"
+                          style={{ marginTop: 6, whiteSpace: 'nowrap' }}
+                          title={`Act as Gateway Officer of ${officerGw.name}: block this exchange after the fact — the recipient loses access to the delivered documents`}
+                          onClick={() =>
+                            dispatch({
+                              type: 'CANCEL_TRANSACTION',
+                              id: t.id,
+                              officerId: state.actingAs,
+                              gatewayId: officerGw.id,
+                              note: `Blocked post-exchange by Gateway Officer at ${officerGw.name}`,
+                            })
+                          }
+                        >
+                          ⛔ Block
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

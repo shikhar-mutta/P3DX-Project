@@ -150,8 +150,15 @@ function MockPayloadModal({ txn, consent, onClose }) {
   const connection = state.connections.find((c) => c.id === txn.connectionId);
   const endpoint = locker?.endpoints.find((e) => e.id === connection?.endpointId);
   const gatewayName = (id) => state.worlds.find((w) => w.gateway.id === id)?.gateway.name || id;
-  // The document dies with the consent; only the attestation record survives.
-  const accessLive = consent.status === 'active' && !isExpired(consent);
+  // The document dies with the consent — or with the transaction, if a gateway
+  // authority blocks the exchange after the fact. Only the attestation survives.
+  const accessLive = consent.status === 'active' && !isExpired(consent) && txn.status === 'completed';
+  const lockReason =
+    txn.status === 'cancelled'
+      ? `transaction blocked by ${agentById(state, txn.cancelledBy)?.name || 'a Gateway authority'}`
+      : consent.status === 'revoked'
+        ? 'consent revoked'
+        : 'consent expired';
 
   return (
     <Modal
@@ -185,8 +192,7 @@ function MockPayloadModal({ txn, consent, onClose }) {
               </button>
             ) : (
               <div className="faint" style={{ marginTop: 10 }}>
-                🔒 Document no longer viewable — consent {consent.status === 'revoked' ? 'revoked' : 'expired'}. The
-                signed attestation above remains on record.
+                🔒 Document no longer viewable — {lockReason}. The signed attestation above remains on record.
               </div>
             )}
             {accessLive && openDoc === d && (

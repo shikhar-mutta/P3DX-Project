@@ -246,7 +246,7 @@ a { color: var(--accent); text-decoration: none; }
 .pill.requested { color: var(--accent); background: rgba(78, 161, 255, 0.12); }
 .pill.pending { color: var(--warn); background: rgba(210, 153, 34, 0.12); }
 .pill.established, .pill.active, .pill.completed { color: var(--ok); background: rgba(63, 185, 80, 0.12); }
-.pill.denied, .pill.revoked { color: var(--danger); background: rgba(248, 81, 73, 0.12); }
+.pill.denied, .pill.revoked, .pill.cancelled { color: var(--danger); background: rgba(248, 81, 73, 0.12); }
 .pill.expired { color: var(--text-faint); background: rgba(139, 152, 169, 0.12); }
 
 .tag {
