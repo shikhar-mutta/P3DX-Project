@@ -21,7 +21,7 @@ export const worlds = [
     region: 'in',
     description:
       'Indian jurisdictional World. All data flows in or out are governed by the Digital Personal Data Protection Act and pass through the national Gateway.',
-    gateway: { id: 'g-india', name: 'India National Gateway' },
+    gateway: { id: 'g-india', name: 'India National Gateway', officerId: 'a-gw-india' },
   },
   {
     id: 'w-univ',
@@ -32,7 +32,7 @@ export const worlds = [
     region: 'in',
     description:
       'University World holding academic records. Issues and attests degrees, transcripts and enrolment proofs.',
-    gateway: { id: 'g-univ', name: 'BIT Institutional Gateway' },
+    gateway: { id: 'g-univ', name: 'BIT Institutional Gateway', officerId: 'a-gw-univ' },
   },
   {
     id: 'w-univ-exams',
@@ -43,7 +43,7 @@ export const worlds = [
     region: 'in',
     description:
       'Departmental World inside the university that maintains the authoritative degree and transcript registry.',
-    gateway: { id: 'g-univ-exams', name: 'Records Dept. Gateway' },
+    gateway: { id: 'g-univ-exams', name: 'Records Dept. Gateway', officerId: 'a-registrar' },
   },
   {
     id: 'w-hospital',
@@ -54,7 +54,7 @@ export const worlds = [
     region: 'in',
     description:
       'Hospital World bound by Indian medical-privacy regulation. Holds patient health records and diagnostics.',
-    gateway: { id: 'g-hospital', name: 'Nirvaan Hospital Gateway' },
+    gateway: { id: 'g-hospital', name: 'Nirvaan Hospital Gateway', officerId: 'a-hosp-admin' },
   },
   {
     id: 'w-tax',
@@ -65,7 +65,7 @@ export const worlds = [
     region: 'in',
     description:
       'Government institutional World holding tax identity (PAN) and income attestations.',
-    gateway: { id: 'g-tax', name: 'ITD Gateway' },
+    gateway: { id: 'g-tax', name: 'ITD Gateway', officerId: 'a-tax-officer' },
   },
   {
     id: 'w-eu',
@@ -76,7 +76,7 @@ export const worlds = [
     region: 'eu',
     description:
       'EU jurisdictional World. Cross-border inbound data must satisfy GDPR lawful-basis and purpose-limitation checks at the Gateway.',
-    gateway: { id: 'g-eu', name: 'EU Jurisdictional Gateway' },
+    gateway: { id: 'g-eu', name: 'EU Jurisdictional Gateway', officerId: 'a-gw-eu' },
   },
   {
     id: 'w-company',
@@ -87,7 +87,7 @@ export const worlds = [
     region: 'eu',
     description:
       'Berlin-based employer World. Its agents request verified credentials from foreign Worlds through governed connections.',
-    gateway: { id: 'g-company', name: 'Steinmetz Corporate Gateway' },
+    gateway: { id: 'g-company', name: 'Steinmetz Corporate Gateway', officerId: 'a-gw-company' },
   },
   {
     id: 'w-company-hr',
@@ -98,7 +98,7 @@ export const worlds = [
     region: 'eu',
     description:
       'Departmental World inside Steinmetz responsible for onboarding, credential verification and employee records.',
-    gateway: { id: 'g-company-hr', name: 'HR Dept. Gateway' },
+    gateway: { id: 'g-company-hr', name: 'HR Dept. Gateway', officerId: 'a-anna' },
   },
   {
     id: 'w-company-eng',
@@ -109,7 +109,7 @@ export const worlds = [
     region: 'eu',
     description:
       'Second departmental World inside Steinmetz, holding project and engineering data behind its own Gateway.',
-    gateway: { id: 'g-company-eng', name: 'Engineering Dept. Gateway' },
+    gateway: { id: 'g-company-eng', name: 'Engineering Dept. Gateway', officerId: 'a-lukas' },
   },
 ];
 
@@ -130,7 +130,7 @@ export const agents = [
     kind: 'human',
     worldId: 'w-univ-exams',
     hue: 30,
-    bio: 'Custodian of the degree registry. Attests academic records released from the Records Dept. World.',
+    bio: 'Custodian of the degree registry and Gateway Officer of the Records Dept. Gateway — she screens and can deny any crossing through it.',
   },
   {
     id: 'a-hosp-admin',
@@ -139,7 +139,7 @@ export const agents = [
     kind: 'human',
     worldId: 'w-hospital',
     hue: 0,
-    bio: 'Administers the hospital health-record lockers and reviews inbound connection requests.',
+    bio: 'Administers the hospital health-record lockers. Gateway Officer of the Nirvaan Hospital Gateway — reviews inbound crossings and can deny them.',
   },
   {
     id: 'a-diag-ai',
@@ -157,7 +157,7 @@ export const agents = [
     kind: 'institution',
     worldId: 'w-tax',
     hue: 140,
-    bio: 'Issues signed income and PAN attestations from the Income Tax Department World.',
+    bio: 'Issues signed income and PAN attestations from the Income Tax Department World, and acts as Gateway Officer of the ITD Gateway.',
   },
   {
     id: 'a-anna',
@@ -166,7 +166,7 @@ export const agents = [
     kind: 'human',
     worldId: 'w-company-hr',
     hue: 330,
-    bio: 'Runs onboarding at Steinmetz Berlin. Needs Arjun’s degree verified for his employment contract.',
+    bio: 'Runs onboarding at Steinmetz Berlin and is Gateway Officer of the HR Dept. Gateway. Needs Arjun’s degree verified for his employment contract.',
   },
   {
     id: 'a-credcheck-ai',
@@ -193,7 +193,43 @@ export const agents = [
     kind: 'human',
     worldId: 'w-company-eng',
     hue: 175,
-    bio: 'Leads the Berlin engineering team. His project data lives in the Engineering Dept. World, behind its own Gateway.',
+    bio: 'Leads the Berlin engineering team. His project data lives in the Engineering Dept. World, behind its own Gateway — where he serves as Gateway Officer and can deny crossings.',
+  },
+  {
+    id: 'a-gw-india',
+    name: 'DPDP Gateway Authority',
+    role: 'Gateway Officer · India National Gateway',
+    kind: 'institution',
+    worldId: 'w-india',
+    hue: 15,
+    bio: 'Operates the India National Gateway. Screens every crossing of the national boundary against the DPDP Act, 2023 and can deny any non-compliant request.',
+  },
+  {
+    id: 'a-gw-univ',
+    name: 'Vikram Shetty',
+    role: 'Gateway Officer · BIT',
+    kind: 'human',
+    worldId: 'w-univ',
+    hue: 95,
+    bio: 'Data-governance officer for the BIT Institutional Gateway. Reviews crossings in and out of the university World and can deny requests that violate UGC records policy.',
+  },
+  {
+    id: 'a-gw-eu',
+    name: 'EDPB Gateway Supervisor',
+    role: 'Gateway Officer · EU Jurisdiction',
+    kind: 'institution',
+    worldId: 'w-eu',
+    hue: 225,
+    bio: 'Supervisory service at the EU Jurisdictional Gateway. Checks inbound cross-border data against GDPR lawful-basis and purpose-limitation rules; denies failing crossings.',
+  },
+  {
+    id: 'a-gw-company',
+    name: 'Elena Fischer',
+    role: 'Data Protection Officer',
+    kind: 'human',
+    worldId: 'w-company',
+    hue: 315,
+    bio: 'Steinmetz DPO. Gateway Officer for the corporate Gateway — every crossing into or out of the company World needs her screen, and she can deny it.',
   },
 ];
 

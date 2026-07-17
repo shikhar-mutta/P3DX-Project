@@ -4,6 +4,8 @@ import {
   agentById,
   lockerById,
   worldById,
+  connectionGateways,
+  officerGatewayFor,
 } from '../store/store';
 import { Avatar, StatusPill, Modal, GatewayPathView, EmptyState, fmtDate } from '../components/ui';
 
@@ -115,6 +117,14 @@ function ConnectionCard({ conn }) {
   const actorIsOwner = state.actingAs === locker?.ownerId;
   const targetWorld = worldById(state, locker?.worldId);
 
+  // Gateway screen: only an officer of a gateway on this crossing's path may
+  // clear or deny it. A same-world request crosses no gateway, so the data
+  // owner performs the (trivial) screen themselves.
+  const gateways = connectionGateways(state, conn);
+  const officerGateway = officerGatewayFor(state, conn, state.actingAs);
+  const canScreen = gateways.length === 0 ? actorIsOwner : !!officerGateway;
+  const officerNames = [...new Set(gateways.map((g) => agentById(state, g.officerId)?.name).filter(Boolean))];
+
   return (
     <div className="card">
       <div className="spread" style={{ marginBottom: 10 }}>
@@ -140,18 +150,45 @@ function ConnectionCard({ conn }) {
         </button>
         <div className="row">
           {conn.status === 'requested' && (
-            <>
-              <button
-                className="btn sm"
-                title="Act as the Gateway: screen the request against this World's policy"
-                onClick={() => dispatch({ type: 'GATEWAY_CLEAR', id: conn.id })}
-              >
-                📡 Clear at Gateway
-              </button>
-              <button className="btn sm danger" onClick={() => dispatch({ type: 'DENY_CONNECTION', id: conn.id, note: 'Rejected by Gateway policy screen' })}>
-                Deny at Gateway
-              </button>
-            </>
+            canScreen ? (
+              <>
+                <button
+                  className="btn sm"
+                  title={officerGateway
+                    ? `Act as Gateway Officer of ${officerGateway.name}: screen the request against this World's policy`
+                    : 'Same-World request — no gateway to cross; screen it as the data owner'}
+                  onClick={() =>
+                    dispatch({
+                      type: 'GATEWAY_CLEAR',
+                      id: conn.id,
+                      note: officerGateway
+                        ? `Cleared by Gateway Officer at ${officerGateway.name}; awaiting data-owner approval`
+                        : undefined,
+                    })
+                  }
+                >
+                  📡 Clear at Gateway
+                </button>
+                <button
+                  className="btn sm danger"
+                  onClick={() =>
+                    dispatch({
+                      type: 'DENY_CONNECTION',
+                      id: conn.id,
+                      note: officerGateway
+                        ? `Denied by Gateway Officer at ${officerGateway.name}`
+                        : 'Denied at policy screen by data owner',
+                    })
+                  }
+                >
+                  Deny at Gateway
+                </button>
+              </>
+            ) : (
+              <span className="faint">
+                Awaiting Gateway screen — switch to {officerNames.length ? officerNames.join(' or ') : owner?.name} to act
+              </span>
+            )
           )}
           {conn.status === 'pending' && (
             actorIsOwner ? (

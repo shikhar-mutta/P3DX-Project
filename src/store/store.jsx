@@ -10,7 +10,7 @@ import { seedState } from '../data/seed';
 // transactions can only be executed against an active consent.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'p3dx-dashboard-state-v2';
+const STORAGE_KEY = 'p3dx-dashboard-state-v3';
 
 function now() {
   return new Date().toISOString();
@@ -40,7 +40,7 @@ export function reducer(state, action) {
     }
 
     case 'GATEWAY_CLEAR': {
-      return updateConnection(state, action.id, 'pending', 'Cleared Gateway policy screen; awaiting data-owner approval');
+      return updateConnection(state, action.id, 'pending', action.note || 'Cleared Gateway policy screen; awaiting data-owner approval');
     }
 
     case 'APPROVE_CONNECTION': {
@@ -233,4 +233,20 @@ export function gatewayPath(state, fromWorldId, toWorldId) {
 export function isCrossBorder(state, fromWorldId, toWorldId) {
   const root = (id) => worldChain(state, id).at(-1)?.id;
   return root(fromWorldId) !== root(toWorldId);
+}
+
+/** Gateways a connection crosses, from its requester's world to its locker's. */
+export function connectionGateways(state, connection) {
+  const requester = agentById(state, connection.requesterId);
+  const locker = lockerById(state, connection.lockerId);
+  if (!requester || !locker) return [];
+  return gatewayPath(state, requester.worldId, locker.worldId);
+}
+
+/**
+ * The gateway on this connection's path where the given agent is the Gateway
+ * Officer (and may therefore clear or deny the crossing), or null.
+ */
+export function officerGatewayFor(state, connection, agentId) {
+  return connectionGateways(state, connection).find((g) => g.officerId === agentId) || null;
 }

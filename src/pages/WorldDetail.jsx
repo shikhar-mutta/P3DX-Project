@@ -58,6 +58,18 @@ export default function WorldDetail() {
             <span className="tag">{gatewayTraffic.length} crossing{gatewayTraffic.length !== 1 ? 's' : ''} on record</span>
           </div>
         </div>
+        {(() => {
+          const officer = agentById(state, world.gateway.officerId);
+          return officer ? (
+            <div className="row" style={{ gap: 8, marginTop: 10 }}>
+              <Avatar agent={officer} size={22} />
+              <span className="small muted">
+                🛡 Gateway Officer: <strong>{officer.name}</strong> — screens every crossing and can deny it at this
+                Gateway.
+              </span>
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {subWorlds.length > 0 && (

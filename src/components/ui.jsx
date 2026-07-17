@@ -55,12 +55,21 @@ export function GatewayPathView({ connection }) {
   return (
     <div className="gw-path">
       <span className="gw-endpoint">{requester.name}</span>
-      {hops.map((g) => (
-        <span key={g.id} className="row" style={{ gap: 6 }}>
-          <span className="gw-arrow">→</span>
-          <span className="gw-hop">📡 {g.name}</span>
-        </span>
-      ))}
+      {hops.map((g) => {
+        const officer = agentById(state, g.officerId);
+        return (
+          <span key={g.id} className="row" style={{ gap: 6 }}>
+            <span className="gw-arrow">→</span>
+            <span
+              className="gw-hop"
+              title={officer ? `Gateway Officer: ${officer.name} — can deny this crossing here` : undefined}
+            >
+              📡 {g.name}
+              {officer && <span className="faint"> · 🛡 {officer.name}</span>}
+            </span>
+          </span>
+        );
+      })}
       <span className="gw-arrow">→</span>
       <span className="gw-endpoint">
         🔌 {endpoint?.name || 'Endpoint'} <span className="muted">({locker.name})</span>
