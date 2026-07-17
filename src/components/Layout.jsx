@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { Avatar } from './ui';
@@ -25,6 +25,13 @@ export default function Layout({ children }) {
   const { state, dispatch } = useStore();
   const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('p3dx-theme', theme);
+  }, [theme]);
+
   const actor = state.agents.find((a) => a.id === state.actingAs);
   const title =
     TITLES[pathname] ||
@@ -51,6 +58,14 @@ export default function Layout({ children }) {
           </div>
         </div>
         <h1>{title}</h1>
+        <button
+          className="theme-toggle"
+          title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-label="Toggle theme"
+          onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <div className="actor-picker" title="Perspective: whose actions are you performing?">
           {actor && <Avatar agent={actor} size={26} />}
           <span className="muted small">Acting as</span>
